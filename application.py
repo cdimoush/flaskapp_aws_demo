@@ -8,12 +8,17 @@ Step-by-step tutorial: https://medium.com/@rodkey/deploying-a-flask-application-
 '''
 
 from flask import Flask, render_template, request
+from flask_ask import Ask, statement, question
 from application import db
 from application.models import Data
 from application.forms import EnterDBInfo, RetrieveDBInfo
+import requests
+
+url = 'https://9f5181d321c07cc611924340bc167791f8e0e54000c82b5e97637fcea4dad6.resindevice.io'
 
 # Elastic Beanstalk initalization
 application = Flask(__name__)
+ask = Ask(application, '/alexa')
 application.debug=True
 # change this to your own value
 application.secret_key = 'cC1YCIWOj9GgWspgNEo2'   
@@ -46,6 +51,29 @@ def index():
         return render_template('results.html', results=query_db, num_return=num_return)                
     
     return render_template('index.html', form1=form1, form2=form2)
+
+
+@ask.launch
+def new_ask():
+    welcome = 'What would you like me to do?'
+    return question(welcome)
+
+
+@ask.intent('LightIntent')
+def request_light(color):
+    if not color:
+        return question('I did no recieve a color, Try again')
+    else:
+        request_url = url + '/' + color  # color is passed to alexa and is a variable from interaction model
+        requests.post(request_url)
+        return statement('turning the lights ' + color)
+
+
+@ask.intent('NoIntent')
+def no_intent():
+    stop_text = 'I am here if you need me'
+    return statement(stop_text)
+
 
 if __name__ == '__main__':
     application.run(host='0.0.0.0')
